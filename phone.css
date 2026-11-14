@@ -151,3 +151,17 @@ body { overscroll-behavior: none; }
   .dock, .top, main { visibility: hidden; }
 }
 @keyframes fdRot { from { transform: rotate(-90deg); } to { transform: rotate(0deg); } }
+
+/* ---- tiles v3: art at TV size (400x225) scaled as one piece; caption and chip stay phone-sized ---- */
+.card { width: calc((min(100vw, 600px) - 52px) / 2) !important; }
+.card .art { position: absolute; left: 0; top: 0; width: 400px; height: 225px; transform: scale(var(--tile-s, .42)); transform-origin: 0 0; pointer-events: none; }
+.card .art .logo { position: absolute !important; left: 0 !important; right: 0 !important; top: 46px !important; height: 84px !important; transform: none !important;
+  display: flex !important; align-items: center; justify-content: center; text-align: center; white-space: nowrap; line-height: 1; }
+.card .art .logo img { max-width: 264px !important; max-height: 70px !important; }
+.card .art .logo .wm { display: inline-block; }
+.card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 55%; background: linear-gradient(0deg, rgba(6, 7, 9, .88), rgba(6, 7, 9, 0)); pointer-events: none; }
+.card .chip { z-index: 2; right: 6px !important; top: 6px !important; font-size: 8px !important; padding: 3px 6px !important; line-height: 1.2; }
+.card .cap { z-index: 2; left: 9px !important; right: 9px !important; bottom: 7px !important; text-align: left; }
+.card .cap b { font-size: 12px !important; line-height: 1.2; }
+.card .cap span { font-size: 8px !important; letter-spacing: .12em !important; margin-top: 2px !important; }
+.card .art .logo .wm { transform: scale(.86); }

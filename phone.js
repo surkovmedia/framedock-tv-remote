@@ -80,7 +80,8 @@
   function card(a) {
     var chip = a.chip ? '<span class="chip ' + esc(a.chipClass || '') + '">' + esc(a.chip) + '</span>' : '';
     return '<button class="card" data-open="' + esc(a.id) + '" style="background-color:' + esc(a.c1 || '#111417') + ';background-image:url(\'' + tileImg(a, 'card') + '\')">' +
-      '<div class="logo">' + logoHtml(a) + '</div>' + chip + '<div class="cap"><b>' + esc(a.name) + '</b><span>' + esc(a.sub || '') + '</span></div></button>';
+      // The art is laid out at the TV's tile size (400x225) and scaled as one piece, so it matches the TV exactly.
+      '<div class="art"><div class="logo">' + logoHtml(a) + '</div></div>' + chip + '<div class="cap"><b>' + esc(a.name) + '</b><span>' + esc(a.sub || '') + '</span></div></button>';
   }
   function renderHome() {
     var s = tvState;
@@ -175,6 +176,14 @@
     if (b.getAttribute('data-cmd') === 'mirror') send({ cmd: 'open', id: 'framedock.mirror' });
     this.hidden = true;
   });
+
+  // ---------------------------------------------------------------- tile art scale (card width / 400)
+  function setTileScale() {
+    var w = (Math.min(window.innerWidth, 600) - 52) / 2;
+    document.documentElement.style.setProperty('--tile-s', (w / 400).toFixed(4));
+  }
+  setTileScale();
+  window.addEventListener('resize', setTileScale);
 
   // ---------------------------------------------------------------- portrait only, no zoom
   try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(function () {}); } catch (e) {}
