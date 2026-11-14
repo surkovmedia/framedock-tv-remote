@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0B0D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FrameDock TV">
+<meta name="robots" content="noindex">
+<title>FrameDock TV</title>
+<link rel="apple-touch-icon" href="assets/touch-icon.png">
+<link rel="stylesheet" href="phone.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="mark"></span><b>FrameDock</b><small>TV</small></div>
+    <div class="link" id="link"><i></i><span id="link-text">CONNECTING</span></div>
+  </header>
+
+  <main id="main">
+    <!-- not paired yet -->
+    <section class="pair" id="pair" hidden>
+      <div class="eyebrow">FRAMEDOCK · PHONE</div>
+      <h1>Scan the code <span class="ghost">on the TV</span></h1>
+      <p>Open <b>Send from phone</b> on FrameDock TV and scan its QR code with the camera. This page then controls that TV.</p>
+    </section>
+
+    <!-- now on TV -->
+    <section class="now" id="now">
+      <div class="now-media" id="now-media"><div class="now-logo" id="now-logo"></div><span class="now-chip" id="now-chip">ON TV</span></div>
+      <div class="now-text">
+        <div class="eyebrow" id="now-eyebrow">NOW ON TV</div>
+        <div class="now-title" id="now-title">FrameDock</div>
+        <div class="now-sub" id="now-sub">Home screen</div>
+      </div>
+    </section>
+
+    <nav class="tabs" id="tabs">
+      <button data-tab="home" class="on">Home</button>
+      <button data-tab="live">Live TV</button>
+      <button data-tab="send">Send</button>
+    </nav>
+
+    <section id="tab-home" class="tab"></section>
+
+    <section id="tab-live" class="tab" hidden>
+      <div class="seg" id="lists">
+        <button data-list="ALL" class="on">English</button>
+        <button data-list="RU">Русские</button>
+        <button data-list="PL">My playlists</button>
+      </div>
+      <input class="search" id="search" type="search" placeholder="Search channels" autocomplete="off">
+      <div class="chips" id="cats"></div>
+      <div class="channels" id="channels"></div>
+    </section>
+
+    <section id="tab-send" class="tab" hidden>
+      <div class="eyebrow">TYPE ON THE PHONE</div>
+      <h2>Send to TV</h2>
+      <p class="muted">A link opens in FrameDock Browser, a playlist link (.m3u, Xtream) goes to My Playlists, text goes into the field that is open on the TV.</p>
+      <textarea id="send-text" rows="3" placeholder="https://… or text"></textarea>
+      <button class="primary" id="send-btn">Send</button>
+      <div class="muted small" id="send-msg"></div>
+    </section>
+  </main>
+
+  <!-- remote dock -->
+  <footer class="dock">
+    <button data-cmd="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Back</span></button>
+    <button data-cmd="home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
+    <button data-key="KEY_VOLDOWN" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 12h5"/></svg><span>Vol −</span></button>
+    <button data-key="KEY_VOLUP" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 12h5M18.5 9.5v5"/></svg><span>Vol +</span></button>
+    <button data-key="KEY_MUTE" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6"/></svg><span>Mute</span></button>
+    <button data-cmd="source" aria-label="Source"><svg viewBox="0 0 24 24"><path d="M3 7h18v11H3zM8 21h8M12 4v3"/></svg><span>Source</span></button>
+  </footer>
+
+  <!-- source sheet -->
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-card">
+      <div class="eyebrow">TV · SOURCE</div>
+      <h2>Switch input</h2>
+      <div class="grid2">
+        <button data-key="KEY_HDMI1">HDMI 1</button><button data-key="KEY_HDMI2">HDMI 2</button>
+        <button data-key="KEY_HDMI3">HDMI 3</button><button data-key="KEY_HDMI4">HDMI 4</button>
+        <button data-key="KEY_TV">TV</button><button data-cmd="mirror">AirPlay</button>
+      </div>
+      <button class="ghost-btn" id="sheet-close">Close</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/mock-apps.js"></script>
+  <script src="js/iptv-catalog.js"></script>
+  <script src="phone.js"></script>
+</body>
+</html>
