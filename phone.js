@@ -179,7 +179,6 @@
     if (e.target === this || e.target.id === 'sheet-close') { this.hidden = true; return; }
     var b = e.target.closest('button'); if (!b) return;
     if (b.getAttribute('data-key')) { send({ cmd: 'key', key: b.getAttribute('data-key') }); toast(b.textContent + ' on the TV'); }
-    if (b.getAttribute('data-cmd') === 'mirror') send({ cmd: 'open', id: 'framedock.mirror' });
     this.hidden = true;
   });
 

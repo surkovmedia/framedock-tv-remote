@@ -12,7 +12,6 @@ const APP_ICONS = {
     prime: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%2300A8E1"/><path d="M25 60c18 12 36 12 50 0M68 56l7 4-5 6" stroke="%23FFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
     disney: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23113CCF"/><path d="M50 24c-14 0-24 12-24 26 0 16 14 26 24 26 10 0 24-10 24-26 0-14-10-26-24-26z" fill="none" stroke="%23FFF" stroke-width="4"/><path d="M36 50h28" stroke="%23FFF" stroke-width="4"/></svg>',
     appletv: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%231C1C1E"/><text x="50" y="62" font-family="-apple-system, sans-serif" font-size="34" font-weight="600" fill="%23FFF" text-anchor="middle">tv</text><path d="M50 26c2-4 6-5 6-5s-1 4-3 6c-2 2-6 1-6 1s0-4 3-6z" fill="%23FFF"/></svg>',
-    plex: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23282A2D"/><path d="M34 26l18 24-18 24h15l18-24-18-24z" fill="%23E5A00D"/></svg>',
     spotify: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%231ED760"/><path d="M28 42c16-4 32-2 44 5M32 54c13-3 26-1 36 5M36 66c10-2 20 0 28 4" stroke="%23000" stroke-width="5" stroke-linecap="round" fill="none"/></svg>',
     twitch: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%239146FF"/><path d="M26 24h48v34l-12 12H50l-8 8v-8H26z" fill="%23FFF"/><path d="M42 38v14M58 38v14" stroke="%239146FF" stroke-width="5" stroke-linecap="round"/></svg>',
     jellyfin: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23000B25"/><path d="M50 22C32 22 22 42 22 62c8-8 18-12 28-12s20 4 28 12c0-20-10-40-28-40z" fill="%2300A4DC"/></svg>',
@@ -73,17 +72,13 @@ const DEFAULT_CATALOG = [
       c1: "#1A0A04", c2: "#FF6A2A", logo: wm("YouTube <span style=\"color:#FFB02A\">Kids</span>", 50, "#fff"),
       eyebrow: "KIDS · INSTALLED", desc: "Videos picked for children.", chips: "KIDS" },
 
-    // ---- Live TV & media: channels, your files, other screens
+    // ---- Live TV & media: channels, your files, HDMI
     { kids: true, id: "cleanyourtv.livetv", builtin: true, row: "live", name: "Live World TV", sub: "English · Русские", chip: "LIVE", chipClass: "live",
       c1: "#061218", c2: "#38BDF8", logo: wm("LIVE <span style=\"color:#38BDF8\">WORLD</span>", 54, "#fff"),
       eyebrow: "FRAMEDOCK · BUILT-IN", desc: "Free broadcasts in English and Russian: news, sport, films. Plays inside FrameDock TV, Back returns here.", chips: "368 ENGLISH · 74 RUSSIAN · ALL PLAYED ON THIS TV" },
     { id: "framedock.playlists", builtin: true, row: "live", name: "My Playlists", sub: "Your own IPTV", chip: "M3U",
       c1: "#120C06", c2: "#E8B27A", logo: wm("my <span style=\"color:#E8B27A\">.m3u</span>", 56, "#E9E4DA"),
       eyebrow: "FRAMEDOCK · IPTV PLAYER", desc: "Your own playlists: an M3U link or an Xtream Codes login. Saved on this TV, plays in the FrameDock player.", chips: "M3U · M3U8 · XTREAM" },
-    { id: "plex", row: "live", name: "Plex", sub: "Your media", chip: "APP",
-      tizenIds: ["kIciSQlYEM.plex"], match: /^plex$/i,
-      c1: "#141006", c2: "#E5A00D", logo: wm("plex", 66, "#E5A00D"),
-      eyebrow: "MEDIA · INSTALLED", desc: "Your personal media, free live TV and movies.", chips: "MEDIA SERVER" },
     { id: "jellyfin", row: "live", name: "Jellyfin", sub: "Your media", chip: "APP",
       tizenIds: ["AprZAARz4r.Jellyfin", "org.jellyfin.tizen"], match: /^jellyfin$/i,
       c1: "#060B1A", c2: "#00A4DC", logo: wm("jellyfin", 58, "#7FD3F0"),
@@ -91,9 +86,6 @@ const DEFAULT_CATALOG = [
     { id: "source", builtin: true, row: "live", name: "Source", sub: "HDMI 1–4 · TV", chip: "HDMI",
       c1: "#0B1012", c2: "#9FD17A", logo: wm("HDMI", 60, "#9FD17A"),
       eyebrow: "TV · SYSTEM", desc: "Switch straight to HDMI 1–4 or TV. The first time, allow FrameDock TV on the TV.", chips: "HDMI 1 · 2 · 3 · 4 · TV" },
-    { id: "framedock.mirror", builtin: true, row: "live", name: "Screen mirroring", sub: "iPhone · Mac · AirPlay", chip: "AIRPLAY",
-      c1: "#0E0E10", c2: "#A1A1AA", logo: wm("AirPlay", 60, "#E9E4DA"),
-      eyebrow: "TV · APPLE AIRPLAY 2", desc: "This TV is an AirPlay receiver: mirror an iPhone or a Mac, or use the TV as a second display.", chips: "BUILT INTO THE TV" },
 
     // ---- Web: the browser (pinned sites are added after it by app.js)
     { id: "framedock.browser", builtin: true, row: "sites", name: "Browser", sub: "Stays in FrameDock", chip: "WEB",
@@ -142,7 +134,7 @@ const DEFAULT_CATALOG = [
 
 const HOME_ROWS = [
     { id: "watch", title: "Watch", tag: "01", hint: "STREAMING" },
-    { id: "live", title: "Live TV & media", tag: "02", hint: "CHANNELS · YOUR FILES · HDMI · AIRPLAY" },
+    { id: "live", title: "Live TV & media", tag: "02", hint: "CHANNELS · YOUR FILES · HDMI" },
     { id: "sites", title: "Web", tag: "03", hint: "PIN A PAGE IN THE BROWSER" },
     { id: "home", title: "At home", tag: "04", hint: "NEWS · MUSIC · ART · GAMES" },
     { id: "tools", title: "Tools", tag: "05", hint: "PHONE · TIMER · SYSTEM" }
