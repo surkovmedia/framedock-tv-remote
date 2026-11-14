@@ -72,7 +72,8 @@
     $('now-chip').textContent = 'LIVE';
     $('now-eyebrow').textContent = s ? (playing ? 'NOW ON TV · LIVE' : 'NOW ON TV') : 'WAITING FOR THE TV';
     $('now-title').textContent = s ? (s.title || 'FrameDock') : 'FrameDock TV';
-    $('now-sub').textContent = s ? (s.sub || '') : (topic ? 'Open FrameDock TV on the TV' : 'Not paired');
+    var vol = s && s.volume != null ? ' · ' + (s.muted ? 'muted' : 'volume ' + s.volume) : '';
+    $('now-sub').textContent = s ? (s.sub || '') + vol : (topic ? 'Open FrameDock TV on the TV' : 'Not paired');
   }
 
   // ---------------------------------------------------------------- home rows
