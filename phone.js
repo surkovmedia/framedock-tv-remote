@@ -63,8 +63,11 @@
     var s = tvState;
     var a = s && s.appId ? (byId(s.appId) || { id: 'cleanyourtv.livetv', name: s.title }) : byId('cleanyourtv.livetv');
     var playing = s && s.screen === 'livetv';
-    $('now-media').style.backgroundImage = "url('" + tileImg(playing ? byId('cleanyourtv.livetv') : (a || {}), 'prev') + "')";
-    $('now-logo').innerHTML = playing ? '<span class="wm" style="font-size:34px;color:#E9E4DA">' + esc(s.title) + '</span>' : (a ? logoHtml(a) : '');
+    var home = !s || s.screen === 'home';
+    $('now-media').style.backgroundImage = home ? "url('assets/tiles/framedock.settings-prev.jpg')" :
+        "url('" + tileImg(playing ? byId('cleanyourtv.livetv') : (a || {}), 'prev') + "')";
+    $('now-logo').innerHTML = home ? '<span class="now-mark"></span><span class="wm" style="font-size:30px;color:#E9E4DA">FrameDock <span class="ghost">TV</span></span>' :
+        playing ? '<span class="wm" style="font-size:34px;color:#E9E4DA">' + esc(s.title) + '</span>' : (a ? logoHtml(a) : '');
     $('now-chip').hidden = !playing;
     $('now-chip').textContent = 'LIVE';
     $('now-eyebrow').textContent = s ? (playing ? 'NOW ON TV · LIVE' : 'NOW ON TV') : 'WAITING FOR THE TV';
