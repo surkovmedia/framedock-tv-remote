@@ -56,7 +56,13 @@
   var CAT = window.DEFAULT_CATALOG || [];
   function byId(id) { for (var i = 0; i < CAT.length; i++) if (CAT[i].id === id) return CAT[i]; return null; }
   function tileImg(a, kind) { return 'assets/tiles/' + (a.bakedAs || a.id) + '-' + kind + '.jpg'; }
-  function logoHtml(a) { return a.logoImg ? '<img src="' + esc(a.logoImg) + '" alt="">' : (a.logo || '<span class="wm" style="font-size:44px">' + esc(a.name) + '</span>'); }
+  // Tiles the TV builds itself (continue watching, pinned sites) carry no logo: same size rule as on the TV.
+  function logoHtml(a) {
+    if (a.logoImg) return '<img src="' + esc(a.logoImg) + '" alt="">';
+    if (a.logo) return a.logo;
+    var t = String(a.name || '').slice(0, 22);
+    return '<span class="wm" style="font-size:' + Math.min(64, Math.floor(640 / Math.max(4, t.length))) + 'px;color:#E9E4DA">' + esc(t) + '</span>';
+  }
 
   // ---------------------------------------------------------------- now on TV
   function renderNow() {

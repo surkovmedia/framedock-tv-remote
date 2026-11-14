@@ -165,3 +165,7 @@ body { overscroll-behavior: none; }
 .card .cap b { font-size: 12px !important; line-height: 1.2; }
 .card .cap span { font-size: 8px !important; letter-spacing: .12em !important; margin-top: 2px !important; }
 .card .art .logo .wm { transform: scale(.86); }
+
+/* Safari: a flex-item image keeps its natural width (min-width: auto) and overflows to the right. */
+.card .art .logo img, .now-logo img { min-width: 0 !important; width: auto; height: auto; flex: 0 1 auto; object-fit: contain; display: block; }
+.card .art .logo > * { flex: 0 1 auto; min-width: 0; }
