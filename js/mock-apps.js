@@ -109,7 +109,7 @@ const DEFAULT_CATALOG = [
     { id: "framedock.today", builtin: true, row: "framedock", name: "Today", sub: "Weather · News", chip: "DXB",
       c1: "#0A1218", c2: "#38BDF8", logo: wm("to<span style=\"color:#38BDF8\">day</span>", 60, "#E9E4DA"),
       eyebrow: "FRAMEDOCK · MORNING", desc: "Weather in Dubai and the latest headlines on one calm screen.", chips: "OPEN-METEO · BBC · DW" },
-    { id: "framedock.phone", builtin: true, row: "framedock", name: "Send from phone", sub: "Links · Playlists · Text", chip: "PHONE",
+    { id: "framedock.phone", builtin: true, row: "framedock", name: "Phone", sub: "FrameDock on your phone", chip: "PHONE",
       c1: "#0B1210", c2: "#9FD17A", logo: wm("phone <span style=\"color:#9FD17A\">&rarr;</span> tv", 52, "#E9E4DA"),
       eyebrow: "FRAMEDOCK · PHONE", desc: "Type a link, a playlist or a search on your phone; the TV picks it up.", chips: "NTFY.SH" },
     { kids: true, id: "cleanyourtv.lofiradio", builtin: true, row: "framedock", name: "Lo-Fi Radio", sub: "6 stations · no ads", chip: "ON AIR", chipClass: "live",

@@ -128,3 +128,26 @@ textarea { resize: none; margin: 14px 0 12px; }
 .card .logo { transform: scale(.5); }
 .now-mark { display: block; width: 34px; height: 34px; margin: 0 auto 12px; border: 4px solid var(--meter); border-radius: 8px; position: relative; }
 .now-mark::after { content: ""; position: absolute; inset: 6px; border: 3px solid var(--bone); border-radius: 3px; }
+
+/* Two tiles per row on the phone (20 px sides, 12 px gap) */
+.card { width: calc((100vw - 52px) / 2) !important; border-radius: 12px; }
+.card .logo { top: 24% !important; transform: scale(.4) !important; }
+.card .chip { right: 6px; top: 6px; font-size: 8px; padding: 3px 6px; }
+.card .cap { left: 8px; right: 8px; bottom: 6px; }
+.card .cap b { font-size: 12px; }
+.card .cap span { font-size: 8px; letter-spacing: .14em; }
+
+/* No zoom gestures; taps react at once */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overscroll-behavior: none; }
+
+/* Portrait only: sideways shows a hint instead of the interface */
+.rotate { display: none; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .rotate { display: flex; position: fixed; inset: 0; z-index: 100; background: var(--bg); flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .rotate b { font-size: 22px; font-weight: 800; margin-top: 18px; }
+  .rotate span:last-child { font-size: 12px; letter-spacing: .24em; color: var(--mute); margin-top: 8px; text-transform: uppercase; }
+  .rotate-phone { width: 34px; height: 58px; border: 3px solid var(--meter); border-radius: 8px; animation: fdRot 1.6s ease-in-out infinite alternate; }
+  .dock, .top, main { visibility: hidden; }
+}
+@keyframes fdRot { from { transform: rotate(-90deg); } to { transform: rotate(0deg); } }

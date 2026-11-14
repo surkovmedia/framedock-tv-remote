@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0A0B0D">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -90,6 +91,9 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- shown instead of the interface when the phone is turned sideways -->
+  <div class="rotate" id="rotate"><span class="rotate-phone"></span><b>Turn the phone upright</b><span>FrameDock works in portrait</span></div>
 
   <script src="js/mock-apps.js"></script>
   <script src="js/iptv-catalog.js"></script>

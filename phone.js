@@ -175,6 +175,14 @@
     this.hidden = true;
   });
 
+  // ---------------------------------------------------------------- portrait only, no zoom
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(function () {}); } catch (e) {}
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {           // iOS pinch
+    document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  // double-tap zoom is off through CSS touch-action: manipulation (keeps fast repeated taps working)
+
   // ---------------------------------------------------------------- start
   $('pair').hidden = !!topic;
   renderNow(); renderHome(); renderLink();
