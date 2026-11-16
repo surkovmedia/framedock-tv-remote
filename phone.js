@@ -24,6 +24,7 @@
     var el = $('toast'); el.textContent = t; el.classList.add('on');
     clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove('on'); }, 2200);
   }
+  function pdiag(o) { if (!topic) return; o.pdiag = 1; o.at = Date.now(); fetch(NTFY + topic + '-tv', { method: 'POST', body: JSON.stringify(o) }).catch(function () {}); }
   function send(body, silent) {
     if (!topic) { if (!silent) toast('Scan the QR code on the TV first'); return Promise.resolve(); }
     var payload = typeof body === 'string' ? body : JSON.stringify(Object.assign({ fd: 1 }, body));
@@ -369,14 +370,18 @@
       if (done) return;
       done = true; active = false; clearTimeout(endWatch); resetUi();
       var q = finalText.trim();
-      if (!q) return;
+      pdiag({ ev: 'talk-end', text: q.slice(0, 80) });
+      if (!q) { toast('Didn\'t catch that. Hold and speak again'); return; }
       if (!msg({ t: 'ask', q: q, voice: true })) send({ cmd: 'ask', q: q, voice: true });
       $('claude-q').value = ''; toast('Asked Claude on the TV');
     }
     function startTalk(e) {
       e.preventDefault();
       if (rec) { try { rec.onend = rec.onerror = rec.onresult = null; rec.abort(); } catch (er) {} rec = null; }
+      // The answer being read aloud keeps iOS audio in playback: stop it first, or the microphone hears nothing.
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (er) {}
       active = true; finalText = ''; done = false; clearTimeout(endWatch);
+      pdiag({ ev: 'talk-start', lang: lang });
       btn.classList.add('on'); btn.querySelector('b').textContent = 'Listening…';
       if (navigator.vibrate) navigator.vibrate(15);
       rec = new R(); rec.lang = lang; rec.interimResults = true; rec.continuous = true;
@@ -386,12 +391,17 @@
         finalText = txt; $('claude-q').value = txt;
       };
       rec.onerror = function (ev) {
+        pdiag({ ev: 'talk-error', error: ev.error });
         if (ev.error === 'not-allowed') toast('Allow the microphone for this page in Safari');
-        else if (ev.error !== 'aborted' && ev.error !== 'no-speech') toast('Voice: ' + ev.error);
+        else if (ev.error !== 'aborted') toast('Voice: ' + ev.error + '. Try again');
         finish();
       };
       rec.onend = finish;
-      try { rec.start(); } catch (er) { done = true; active = false; resetUi(); toast('Voice did not start, try again'); }
+      var r0 = rec;
+      setTimeout(function () {                                         // give iOS a moment to switch the audio to the microphone
+        if (rec !== r0 || done) return;
+        try { r0.start(); } catch (er) { pdiag({ ev: 'talk-start-failed', error: String(er) }); done = true; active = false; resetUi(); toast('Voice did not start, try again'); }
+      }, 250);
     }
     function stopTalk(e) {
       if (e) e.preventDefault();
