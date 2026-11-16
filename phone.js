@@ -40,7 +40,8 @@
       if (msg.event !== 'message' || !msg.message) return;
       var st; try { st = JSON.parse(msg.message); } catch (e) { return; }
       if (!st || st.fd !== 1) return;
-      if (st.rtc) { onRtc(st); return; }                            // touchpad handshake answer, not the TV state
+      if (st.rtc) { onRtc(st); return; }
+      if (st.claude === 'answer') { onAnswer(st.s, st.voice); return; }   // Claude's answer when there is no direct link                            // touchpad handshake answer, not the TV state
       tvState = st; lastStateAt = Date.now();
       renderNow(); renderHome(); renderLink();
       if (currentList === 'PL') renderChannels();
@@ -197,7 +198,7 @@
   });
 
   // ---------------------------------------------------------------- touchpad (direct WebRTC link to the TV)
-  var rtc = { pc: null, ch: null, id: null, state: 'idle', timer: 0, pinger: 0 };
+  var rtc = { pc: null, ch: null, id: null, state: 'idle', timer: 0, pinger: 0, lastPong: 0 };
   function touchStatus(text, on) {
     var el = $('touch-status');
     el.classList.toggle('on', !!on);
@@ -227,7 +228,7 @@
     var ch = pc.createDataChannel('touch', { ordered: true });
     rtc.pc = pc; rtc.id = Math.random().toString(36).slice(2, 10);
     ch.onopen = function () {
-      rtc.ch = ch; rtc.state = 'open'; clearTimeout(rtc.timer);
+      rtc.ch = ch; rtc.state = 'open'; rtc.lastPong = Date.now(); clearTimeout(rtc.timer);
       touchStatus('Direct link', true);
       clearInterval(rtc.pinger);
       rtc.pinger = setInterval(function () { msg({ t: 'ping', ts: Date.now() }); }, 3000);
@@ -236,7 +237,8 @@
     ch.onclose = function () { if (rtc.pc === pc) { rtcClose(); touchStatus('Disconnected · touch the pad to reconnect'); } };
     ch.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (e) { return; }
-      if (d.t === 'pong') touchStatus('Direct link · ' + (Date.now() - d.ts) + ' ms', true);
+      if (d.t === 'answer') { onAnswer(d.s, d.voice); return; }
+      if (d.t === 'pong') { rtc.lastPong = Date.now(); touchStatus('Direct link · ' + (Date.now() - d.ts) + ' ms', true); }
     };
     pc.createOffer().then(function (o) { return pc.setLocalDescription(o); })
       .then(function () { return waitIce(pc, 2000); })
@@ -251,10 +253,18 @@
     if (st.rtc === 'answer') rtc.pc.setRemoteDescription({ type: 'answer', sdp: st.sdp }).catch(function () { touchStatus('The TV answer did not fit'); });
     else if (st.rtc === 'error') { touchStatus('TV: ' + (st.error || 'error')); rtcClose(); }
   }
+  // Sent only over a link the TV is still answering; a silent link (phone was in the background, Wi-Fi switch)
+  // is dropped and rebuilt, and the caller falls back to the relay.
   function msg(o) {
-    if (rtc.ch && rtc.ch.readyState === 'open') { rtc.ch.send(JSON.stringify(o)); return true; }
+    if (rtc.ch && rtc.ch.readyState === 'open') {
+      if (o.t !== 'ping' && Date.now() - rtc.lastPong > 8000) { rtcClose(); touchStatus('Reconnecting…'); rtcConnect(); return false; }
+      try { rtc.ch.send(JSON.stringify(o)); return true; } catch (e) { rtcClose(); return false; }
+    }
     return false;
   }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && rtc.state === 'open' && Date.now() - rtc.lastPong > 8000) { rtcClose(); rtcConnect(); }
+  });
   (function () {
     var pad = $('pad'), last = null, lastT = 0, startT = 0, moved = 0, fingers = 0;
     function avg(ts) { var x = 0, y = 0; for (var i = 0; i < ts.length; i++) { x += ts[i].clientX; y += ts[i].clientY; } return { x: x / ts.length, y: y / ts.length }; }
@@ -314,6 +324,32 @@
     $('claude-q').value = '';
     toast('Asked Claude on the TV');
   });
+  // Claude's answer: shown here and read aloud by the iPhone (the TV's own speech synthesis is silent).
+  var speakOn = true;
+  try { speakOn = localStorage.getItem('fd_speak') !== '0'; } catch (e) {}
+  function showSpeak() { $('claude-speak').textContent = 'Speak answers: ' + (speakOn ? 'on' : 'off'); }
+  showSpeak();
+  $('claude-speak').addEventListener('click', function () {
+    speakOn = !speakOn; showSpeak();
+    try { localStorage.setItem('fd_speak', speakOn ? '1' : '0'); } catch (e) {}
+    if (!speakOn && window.speechSynthesis) speechSynthesis.cancel();
+  });
+  function onAnswer(text) {
+    if (!text) return;
+    var box = $('claude-answer'); box.hidden = false; box.textContent = text;
+    if (!speakOn || !window.speechSynthesis) return;
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = /[а-яё]/i.test(text) ? 'ru-RU' : 'en-US';
+    var v = speechSynthesis.getVoices().filter(function (x) { return x.lang === u.lang; })[0];
+    if (v) u.voice = v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+  // iOS speaks only after a first utterance started by a tap: unlock it on the first touch of the page.
+  document.addEventListener('touchend', function unlock() {
+    document.removeEventListener('touchend', unlock);
+    try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+  });
+
   // Hold to talk: Safari recognizes the speech on the phone, the text goes to Claude on the TV.
   (function () {
     var R = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $('claude-talk'), langBtn = $('claude-lang');
@@ -326,11 +362,21 @@
       try { localStorage.setItem('fd_talk_lang', lang); } catch (e) {}
     });
     if (!R) { btn.querySelector('b').textContent = 'Voice not available here'; btn.disabled = true; return; }
-    var rec = null, finalText = '', active = false;
+    var rec = null, finalText = '', active = false, endWatch = 0, done = false;
+    function resetUi() { btn.classList.remove('on'); btn.querySelector('b').textContent = 'Hold to talk'; }
+    // Safari sometimes never fires "end" after stop(): finish ourselves, so the button can't get stuck.
+    function finish() {
+      if (done) return;
+      done = true; active = false; clearTimeout(endWatch); resetUi();
+      var q = finalText.trim();
+      if (!q) return;
+      if (!msg({ t: 'ask', q: q, voice: true })) send({ cmd: 'ask', q: q, voice: true });
+      $('claude-q').value = ''; toast('Asked Claude on the TV');
+    }
     function startTalk(e) {
       e.preventDefault();
-      if (active) return;
-      active = true; finalText = '';
+      if (rec) { try { rec.onend = rec.onerror = rec.onresult = null; rec.abort(); } catch (er) {} rec = null; }
+      active = true; finalText = ''; done = false; clearTimeout(endWatch);
       btn.classList.add('on'); btn.querySelector('b').textContent = 'Listening…';
       if (navigator.vibrate) navigator.vibrate(15);
       rec = new R(); rec.lang = lang; rec.interimResults = true; rec.continuous = true;
@@ -339,17 +385,20 @@
         for (var i = 0; i < ev.results.length; i++) txt += ev.results[i][0].transcript;
         finalText = txt; $('claude-q').value = txt;
       };
-      rec.onerror = function (ev) { if (ev.error === 'not-allowed') toast('Allow the microphone for this page in Safari'); };
-      rec.onend = function () {
-        btn.classList.remove('on'); btn.querySelector('b').textContent = 'Hold to talk';
-        var q = finalText.trim(); active = false;
-        if (!q) return;
-        if (!msg({ t: 'ask', q: q, voice: true })) send({ cmd: 'ask', q: q, voice: true });
-        $('claude-q').value = ''; toast('Asked Claude on the TV');
+      rec.onerror = function (ev) {
+        if (ev.error === 'not-allowed') toast('Allow the microphone for this page in Safari');
+        else if (ev.error !== 'aborted' && ev.error !== 'no-speech') toast('Voice: ' + ev.error);
+        finish();
       };
-      try { rec.start(); } catch (er) { active = false; btn.classList.remove('on'); }
+      rec.onend = finish;
+      try { rec.start(); } catch (er) { done = true; active = false; resetUi(); toast('Voice did not start, try again'); }
     }
-    function stopTalk(e) { if (e) e.preventDefault(); if (rec) try { rec.stop(); } catch (er) {} }
+    function stopTalk(e) {
+      if (e) e.preventDefault();
+      if (!active) return;
+      if (rec) try { rec.stop(); } catch (er) {}
+      endWatch = setTimeout(finish, 2500);
+    }
     btn.addEventListener('touchstart', startTalk, { passive: false });
     btn.addEventListener('touchend', stopTalk, { passive: false });
     btn.addEventListener('touchcancel', stopTalk, { passive: false });

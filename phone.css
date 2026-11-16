@@ -212,3 +212,5 @@ button:disabled { opacity: .3; }
 .talk.on { background: #D97757; color: #0A0B0D; }
 .talk.on .talk-dot { background: #0A0B0D; }
 .talk-lang { width: 64px; border: 1px solid var(--line); border-radius: 99px; font-weight: 800; font-size: 13px; letter-spacing: .1em; }
+.claude-answer { margin-top: 14px; padding: 14px 16px; border: 1px solid rgba(217,119,87,.4); border-radius: 14px; background: rgba(217,119,87,.08); font-size: 16px; line-height: 1.45; }
+.speak-toggle { margin-top: 10px; font-size: 11px; letter-spacing: .2em; font-weight: 800; text-transform: uppercase; color: var(--mute); padding: 8px 0; }
