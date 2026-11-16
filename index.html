@@ -40,6 +40,7 @@
     <nav class="tabs" id="tabs">
       <button data-tab="home" class="on">Home</button>
       <button data-tab="live">Live TV</button>
+      <button data-tab="touch">Touch</button>
       <button data-tab="send">Send</button>
     </nav>
 
@@ -54,6 +55,20 @@
       <input class="search" id="search" type="search" placeholder="Search channels" autocomplete="off">
       <div class="chips" id="cats"></div>
       <div class="channels" id="channels"></div>
+    </section>
+
+    <section id="tab-touch" class="tab" hidden>
+      <div class="touch-status" id="touch-status"><i></i><span>Not connected</span></div>
+      <div class="pad" id="pad"><span>MOVE A FINGER · TAP = OK · TWO FINGERS = SCROLL</span></div>
+      <div class="pad-keys">
+        <button data-tk="10009">Back</button><button data-tk="13">OK</button><button data-tk="405">Address</button>
+        <button data-tk="412">&#9194;</button><button data-tk="10252">&#9199;</button><button data-tk="417">&#9193;</button>
+      </div>
+      <div class="type-row">
+        <input id="touch-text" type="text" placeholder="Type here: it goes into the field on the TV" autocomplete="off" autocapitalize="off" enterkeyhint="go">
+        <button id="touch-go">Go</button>
+      </div>
+      <p class="muted small">Works over your home Wi-Fi: the phone and the TV talk directly.</p>
     </section>
 
     <section id="tab-send" class="tab" hidden>

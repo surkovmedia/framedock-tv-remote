@@ -183,3 +183,19 @@ body { overscroll-behavior: none; }
 .ectl button { flex: 1; padding: 8px 0; border: 1px solid var(--line); border-radius: 10px; font-size: 11px; font-weight: 800; letter-spacing: .06em; }
 .ectl span { font-size: 9px; letter-spacing: .2em; color: var(--mute); font-weight: 800; padding: 9px 0; }
 button:disabled { opacity: .3; }
+/* Touchpad */
+#tab-touch { padding: 0 20px; }
+.touch-status { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: .2em; font-weight: 800; color: var(--mute); text-transform: uppercase; margin-bottom: 12px; }
+.touch-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); flex: 0 0 auto; }
+.touch-status.on { color: var(--bone); }
+.touch-status.on i { background: var(--meter); }
+.pad { height: 300px; border: 1px solid var(--line); border-radius: 22px; background: radial-gradient(80% 60% at 50% 40%, rgba(159, 209, 122, .07), transparent 70%), #0E1316;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 14px; touch-action: none; -webkit-user-select: none; user-select: none; transition: background-color .15s; }
+.pad.tap { background-color: #16282E; }
+.pad span { font-size: 9px; letter-spacing: .2em; font-weight: 800; color: #56625F; }
+.pad-keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0; }
+.pad-keys button { padding: 12px 0; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; font-weight: 800; }
+.type-row { display: flex; gap: 8px; }
+.type-row input { flex: 1; min-width: 0; background: #0A0B0D; border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; color: var(--bone); font: 500 16px "Geist", sans-serif; outline: none; }
+.type-row button { padding: 0 18px; border-radius: 12px; background: var(--bone); color: var(--bg); font-weight: 800; }
+.small { font-size: 12px; }

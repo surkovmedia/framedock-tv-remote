@@ -40,6 +40,7 @@
       if (msg.event !== 'message' || !msg.message) return;
       var st; try { st = JSON.parse(msg.message); } catch (e) { return; }
       if (!st || st.fd !== 1) return;
+      if (st.rtc) { onRtc(st); return; }                            // touchpad handshake answer, not the TV state
       tvState = st; lastStateAt = Date.now();
       renderNow(); renderHome(); renderLink();
       if (currentList === 'PL') renderChannels();
@@ -195,6 +196,116 @@
     send({ cmd: 'open', id: id }); toast('Opening ' + app.name + ' on the TV');
   });
 
+  // ---------------------------------------------------------------- touchpad (direct WebRTC link to the TV)
+  var rtc = { pc: null, ch: null, id: null, state: 'idle', timer: 0, pinger: 0 };
+  function touchStatus(text, on) {
+    var el = $('touch-status');
+    el.classList.toggle('on', !!on);
+    el.querySelector('span').textContent = text;
+  }
+  function waitIce(pc, ms) {
+    return new Promise(function (resolve) {
+      if (pc.iceGatheringState === 'complete') { resolve(); return; }
+      var done = false, fin = function () { if (!done) { done = true; resolve(); } };
+      pc.addEventListener('icegatheringstatechange', function () { if (pc.iceGatheringState === 'complete') fin(); });
+      setTimeout(fin, ms);
+    });
+  }
+  function rtcClose() {
+    clearTimeout(rtc.timer); clearInterval(rtc.pinger);
+    try { if (rtc.ch) rtc.ch.close(); } catch (e) {}
+    try { if (rtc.pc) rtc.pc.close(); } catch (e) {}
+    rtc.pc = rtc.ch = null; rtc.state = 'idle';
+  }
+  function rtcConnect() {
+    if (!topic) { touchStatus('Scan the QR code on the TV first'); return; }
+    if (rtc.state === 'open' || rtc.state === 'connecting') return;
+    if (!window.RTCPeerConnection) { touchStatus('This browser cannot connect directly'); return; }
+    rtcClose();
+    rtc.state = 'connecting'; touchStatus('Connecting to the TV…');
+    var pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    var ch = pc.createDataChannel('touch', { ordered: true });
+    rtc.pc = pc; rtc.id = Math.random().toString(36).slice(2, 10);
+    ch.onopen = function () {
+      rtc.ch = ch; rtc.state = 'open'; clearTimeout(rtc.timer);
+      touchStatus('Direct link', true);
+      clearInterval(rtc.pinger);
+      rtc.pinger = setInterval(function () { msg({ t: 'ping', ts: Date.now() }); }, 3000);
+      msg({ t: 'ping', ts: Date.now() });
+    };
+    ch.onclose = function () { if (rtc.pc === pc) { rtcClose(); touchStatus('Disconnected · touch the pad to reconnect'); } };
+    ch.onmessage = function (m) {
+      var d; try { d = JSON.parse(m.data); } catch (e) { return; }
+      if (d.t === 'pong') touchStatus('Direct link · ' + (Date.now() - d.ts) + ' ms', true);
+    };
+    pc.createOffer().then(function (o) { return pc.setLocalDescription(o); })
+      .then(function () { return waitIce(pc, 2000); })
+      .then(function () { if (rtc.pc === pc) send({ cmd: 'rtc-offer', id: rtc.id, sdp: pc.localDescription.sdp }, true); })
+      .catch(function () { touchStatus('Could not start the connection'); rtc.state = 'idle'; });
+    rtc.timer = setTimeout(function () {
+      if (rtc.pc === pc && rtc.state !== 'open') { rtcClose(); touchStatus('No direct link. Is the phone on the same Wi-Fi as the TV?'); }
+    }, 15000);
+  }
+  function onRtc(st) {
+    if (!rtc.pc || st.id !== rtc.id) return;
+    if (st.rtc === 'answer') rtc.pc.setRemoteDescription({ type: 'answer', sdp: st.sdp }).catch(function () { touchStatus('The TV answer did not fit'); });
+    else if (st.rtc === 'error') { touchStatus('TV: ' + (st.error || 'error')); rtcClose(); }
+  }
+  function msg(o) {
+    if (rtc.ch && rtc.ch.readyState === 'open') { rtc.ch.send(JSON.stringify(o)); return true; }
+    return false;
+  }
+  (function () {
+    var pad = $('pad'), last = null, lastT = 0, startT = 0, moved = 0, fingers = 0;
+    function avg(ts) { var x = 0, y = 0; for (var i = 0; i < ts.length; i++) { x += ts[i].clientX; y += ts[i].clientY; } return { x: x / ts.length, y: y / ts.length }; }
+    pad.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      if (rtc.state !== 'open') rtcConnect();
+      fingers = Math.max(fingers, e.touches.length);
+      last = avg(e.touches); lastT = Date.now();
+      if (e.touches.length === 1) { startT = lastT; moved = 0; }
+    }, { passive: false });
+    pad.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      var p = avg(e.touches), now = Date.now();
+      var dx = p.x - last.x, dy = p.y - last.y, dt = Math.max(1, now - lastT);
+      last = p; lastT = now; moved += Math.abs(dx) + Math.abs(dy);
+      if (e.touches.length >= 2) { msg({ t: 'scroll', dy: -dy * 3 }); return; }        // natural scrolling
+      var speed = Math.sqrt(dx * dx + dy * dy) / dt;                                  // px per ms
+      var f = 1 + Math.min(speed * 1.6, 3);                                          // faster finger, further pointer
+      msg({ t: 'm', dx: dx * f, dy: dy * f });
+    }, { passive: false });
+    pad.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      if (e.touches.length === 0) {
+        if (fingers === 1 && moved < 12 && Date.now() - startT < 350) { if (!msg({ t: 'tap' })) toast('Not connected to the TV'); pad.classList.add('tap'); setTimeout(function () { pad.classList.remove('tap'); }, 150); }
+        fingers = 0;
+      } else last = avg(e.touches);
+    }, { passive: false });
+  })();
+  document.querySelector('.pad-keys').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tk]'); if (!b) return;
+    var k = +b.getAttribute('data-tk');
+    if (!msg({ t: 'key', k: k })) { if (k === 10009) send({ cmd: 'back' }); else toast('Not connected to the TV'); }
+    if (navigator.vibrate) navigator.vibrate(8);
+  });
+  (function () {
+    var input = $('touch-text'), h = 0;
+    input.addEventListener('input', function () {
+      clearTimeout(h);
+      h = setTimeout(function () { msg({ t: 'text', s: input.value }); }, 120);         // the field on the TV fills as you type
+    });
+    function go() {
+      clearTimeout(h);
+      var v = input.value;
+      if (!v) return;
+      if (!msg({ t: 'text', s: v, enter: true })) send(v);                            // no direct link: the slow way
+      input.value = '';
+    }
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    $('touch-go').addEventListener('click', go);
+  })();
+
   // ---------------------------------------------------------------- live tv
   var currentList = 'ALL', currentCat = 'All', query = '', shown = 80;
   function channelsOf(list) {
@@ -247,7 +358,8 @@
     var b = e.target.closest('[data-tab]'); if (!b) return;
     var t = b.getAttribute('data-tab');
     Array.prototype.forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
-    ['home', 'live', 'send'].forEach(function (k) { $('tab-' + k).hidden = k !== t; });
+    ['home', 'live', 'touch', 'send'].forEach(function (k) { $('tab-' + k).hidden = k !== t; });
+    if (t === 'touch') rtcConnect();
     if (t === 'live') renderChannels();
   });
   $('send-btn').addEventListener('click', function () {
