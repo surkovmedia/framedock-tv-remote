@@ -89,24 +89,110 @@
       // The art is laid out at the TV's tile size (400x225) and scaled as one piece, so it matches the TV exactly.
       '<div class="art"><div class="logo">' + logoHtml(a) + '</div></div>' + chip + '<div class="cap"><b>' + esc(a.name) + '</b><span>' + esc(a.sub || '') + '</span></div></button>';
   }
-  function renderHome() {
+  // The rows exactly as the TV shows them (its own order, names, hidden tiles); older TVs: built from the catalog.
+  var editing = false, model = null;                                 // model: {rows:[{id,title,items:[tile]}], hidden:[tile], names:{}}
+  function tileFor(id, s) {
+    var x = null;
+    (s.extra || []).forEach(function (e) { if (e.id === id) x = e; });
+    var a = x || byId(id);
+    if (!a) return null;
+    a = Object.assign({}, a);
+    if (s.names && s.names[id]) a.name = s.names[id];
+    return a;
+  }
+  function buildModel() {
     var s = tvState;
-    var visible = s && s.apps ? s.apps : null;                     // catalog ids the TV shows (installed, kids mode…)
-    var extra = s && s.extra ? s.extra : [];                        // continue-watching, pinned sites
-    var rows = (window.HOME_ROWS || []).map(function (r) {
-      var items = CAT.filter(function (a) { return a.row === r.id && (!visible || visible.indexOf(a.id) !== -1); });
-      extra.forEach(function (x) { if (x.row === r.id) items[x.first ? 'unshift' : 'push'](x); });
-      return { r: r, items: items };
-    }).filter(function (x) { return x.items.length; });
-    $('tab-home').innerHTML = rows.map(function (x, i) {
-      return '<div class="row"><div class="rh"><h3>' + esc(x.r.title) + '</h3><small>0' + (i + 1) + '</small></div><div class="strip">' + x.items.map(card).join('') + '</div></div>';
+    if (s && s.rows) {
+      return {
+        rows: s.rows.map(function (r) { return { id: r.id, title: r.title, items: r.items.map(function (id) { return tileFor(id, s); }).filter(Boolean) }; }),
+        hidden: (s.hidden || []).map(function (h) { var a = byId(h.id); return Object.assign({}, a || {}, h); }),
+        names: Object.assign({}, s.names || {})
+      };
+    }
+    var visible = s && s.apps ? s.apps : null, extra = s && s.extra ? s.extra : [];
+    return {
+      rows: (window.HOME_ROWS || []).map(function (r) {
+        var items = CAT.filter(function (a) { return a.row === r.id && (!visible || visible.indexOf(a.id) !== -1); });
+        extra.forEach(function (x) { if (x.row === r.id) items[x.first ? 'unshift' : 'push'](x); });
+        return { id: r.id, title: r.title, items: items };
+      }).filter(function (x) { return x.items.length; }),
+      hidden: [], names: {}
+    };
+  }
+  var FIXED = { 'framedock.continue': 1, 'framedock.webcontinue': 1, 'framedock.kidsexit': 1 };   // always first / not editable
+  function renderHome() {
+    if (!editing || !model) model = buildModel();
+    var canEdit = !!(tvState && tvState.rows) && !(tvState && tvState.kids);
+    var head = '<div class="edit-bar">' + (editing
+      ? '<span>EDIT HOME · CHANGES SHOW ON THE TV AT ONCE</span><button data-ed="reset">Reset</button><button class="on" data-ed="done">Done</button>'
+      : (canEdit ? '<button data-ed="start">Edit home</button>' : '')) + '</div>';
+    var rows = model.rows.map(function (x, i) {
+      var ctl = editing ? '<span class="row-ctl"><button data-row-up="' + i + '" ' + (i === 0 ? 'disabled' : '') + '>&#9650;</button><button data-row-down="' + i + '" ' + (i === model.rows.length - 1 ? 'disabled' : '') + '>&#9660;</button></span>' : '';
+      return '<div class="row"><div class="rh"><h3>' + esc(x.title) + '</h3><small>0' + (i + 1) + '</small>' + ctl + '</div><div class="strip">' +
+        x.items.map(function (a, k) { return editing ? editCard(a, i, k, x.items.length) : card(a); }).join('') + '</div></div>';
     }).join('');
+    var hid = editing && model.hidden.length ? '<div class="row"><div class="rh"><h3>Hidden</h3><small>' + model.hidden.length + '</small></div><div class="strip">' +
+      model.hidden.map(function (a, k) { return '<div class="ecard">' + card(a) + '<div class="ectl"><button data-show="' + k + '">Show</button></div></div>'; }).join('') + '</div></div>' : '';
+    $('tab-home').innerHTML = head + rows + hid;
+  }
+  function editCard(a, ri, k, n) {
+    if (FIXED[a.id]) return '<div class="ecard fixed">' + card(a) + '<div class="ectl"><span>STAYS FIRST</span></div></div>';
+    var first = k === 0 || FIXED[model.rows[ri].items[k - 1].id];
+    return '<div class="ecard">' + card(a) + '<div class="ectl">' +
+      '<button data-mv="-1" data-r="' + ri + '" data-k="' + k + '" ' + (first ? 'disabled' : '') + '>&#9664;</button>' +
+      '<button data-mv="1" data-r="' + ri + '" data-k="' + k + '" ' + (k === n - 1 ? 'disabled' : '') + '>&#9654;</button>' +
+      '<button data-rename="1" data-r="' + ri + '" data-k="' + k + '">Rename</button>' +
+      '<button data-hide="1" data-r="' + ri + '" data-k="' + k + '">Hide</button></div></div>';
+  }
+  function pushLayout() {
+    var order = {};
+    model.rows.forEach(function (r) { order[r.id] = r.items.filter(function (a) { return !FIXED[a.id]; }).map(function (a) { return a.id; }); });
+    send({ cmd: 'layout', layout: {
+      hidden: model.hidden.map(function (a) { return a.id; }),
+      order: order,
+      names: model.names,
+      rows: model.rows.map(function (r) { return r.id; })
+    } }, true);
+    renderHome();
   }
   $('tab-home').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-open]');
-    if (!b) return;
-    var id = b.getAttribute('data-open'), a = byId(id) || { name: b.querySelector('.cap b').textContent };
-    send({ cmd: 'open', id: id }); toast('Opening ' + a.name + ' on the TV');
+    var b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    var ed = b.getAttribute('data-ed');
+    if (ed === 'start') { editing = true; model = buildModel(); renderHome(); return; }
+    if (ed === 'done') { editing = false; model = null; renderHome(); toast('Saved on the TV'); return; }
+    if (ed === 'reset') {
+      if (!confirm('Reset the home screen to the standard layout?')) return;
+      send({ cmd: 'layout', layout: {} }, true); editing = false; model = null; toast('Standard layout restored');
+      setTimeout(function () { send({ cmd: 'sync' }, true); }, 800);
+      return;
+    }
+    if (editing) {
+      var r = +b.getAttribute('data-r'), k = +b.getAttribute('data-k'), items = model.rows[r] ? model.rows[r].items : null;
+      if (b.hasAttribute('data-row-up') || b.hasAttribute('data-row-down')) {
+        var i = +(b.getAttribute('data-row-up') || b.getAttribute('data-row-down')), j = b.hasAttribute('data-row-up') ? i - 1 : i + 1;
+        var t = model.rows[i]; model.rows[i] = model.rows[j]; model.rows[j] = t; pushLayout(); return;
+      }
+      if (b.hasAttribute('data-mv')) { var d = +b.getAttribute('data-mv'), x = items[k]; items[k] = items[k + d]; items[k + d] = x; pushLayout(); return; }
+      if (b.hasAttribute('data-hide')) { model.hidden.push(items.splice(k, 1)[0]); pushLayout(); return; }
+      if (b.hasAttribute('data-show')) {
+        var a = model.hidden.splice(+b.getAttribute('data-show'), 1)[0];
+        model.rows.forEach(function (row) { if (row.id === a.row) row.items.push(a); });
+        pushLayout(); return;
+      }
+      if (b.hasAttribute('data-rename')) {
+        var tile = items[k], name = prompt('Name on the TV', tile.name);
+        if (name == null) return;
+        name = name.trim().slice(0, 40);
+        if (name) { model.names[tile.id] = name; tile.name = name; } else { delete model.names[tile.id]; }
+        pushLayout(); return;
+      }
+      return;                                                         // in edit mode tiles do not open apps
+    }
+    var o = e.target.closest('[data-open]');
+    if (!o) return;
+    var id = o.getAttribute('data-open'), app = byId(id) || { name: o.querySelector('.cap b').textContent };
+    send({ cmd: 'open', id: id }); toast('Opening ' + app.name + ' on the TV');
   });
 
   // ---------------------------------------------------------------- live tv

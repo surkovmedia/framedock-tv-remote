@@ -169,3 +169,17 @@ body { overscroll-behavior: none; }
 /* Safari: a flex-item image keeps its natural width (min-width: auto) and overflows to the right. */
 .card .art .logo img, .now-logo img { min-width: 0 !important; width: auto; height: auto; flex: 0 1 auto; object-fit: contain; display: block; }
 .card .art .logo > * { flex: 0 1 auto; min-width: 0; }
+/* Edit home */
+.edit-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 20px 14px; min-height: 8px; }
+.edit-bar span { flex: 1; font-size: 10px; letter-spacing: .2em; font-weight: 800; color: var(--mute); }
+.edit-bar button { font-size: 12px; letter-spacing: .16em; font-weight: 800; text-transform: uppercase; padding: 9px 14px; border: 1px solid var(--line); border-radius: 99px; color: var(--bone); }
+.edit-bar button.on { background: var(--bone); color: var(--bg); border-color: var(--bone); }
+.row-ctl { margin-left: auto; display: flex; gap: 6px; }
+.row-ctl button { width: 34px; height: 30px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
+.ecard { flex: 0 0 auto; margin-right: 12px; scroll-snap-align: start; }
+.ecard .card { margin-right: 0; pointer-events: none; }
+.ecard.fixed .card { opacity: .55; }
+.ectl { display: flex; gap: 6px; margin-top: 8px; }
+.ectl button { flex: 1; padding: 8px 0; border: 1px solid var(--line); border-radius: 10px; font-size: 11px; font-weight: 800; letter-spacing: .06em; }
+.ectl span { font-size: 9px; letter-spacing: .2em; color: var(--mute); font-weight: 800; padding: 9px 0; }
+button:disabled { opacity: .3; }
