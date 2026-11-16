@@ -314,6 +314,49 @@
     $('claude-q').value = '';
     toast('Asked Claude on the TV');
   });
+  // Hold to talk: Safari recognizes the speech on the phone, the text goes to Claude on the TV.
+  (function () {
+    var R = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $('claude-talk'), langBtn = $('claude-lang');
+    var lang = 'ru-RU';
+    try { lang = localStorage.getItem('fd_talk_lang') || (/^ru/i.test(navigator.language) ? 'ru-RU' : 'en-US'); } catch (e) {}
+    function showLang() { langBtn.textContent = /^ru/.test(lang) ? 'RU' : 'EN'; }
+    showLang();
+    langBtn.addEventListener('click', function () {
+      lang = /^ru/.test(lang) ? 'en-US' : 'ru-RU'; showLang();
+      try { localStorage.setItem('fd_talk_lang', lang); } catch (e) {}
+    });
+    if (!R) { btn.querySelector('b').textContent = 'Voice not available here'; btn.disabled = true; return; }
+    var rec = null, finalText = '', active = false;
+    function startTalk(e) {
+      e.preventDefault();
+      if (active) return;
+      active = true; finalText = '';
+      btn.classList.add('on'); btn.querySelector('b').textContent = 'Listening…';
+      if (navigator.vibrate) navigator.vibrate(15);
+      rec = new R(); rec.lang = lang; rec.interimResults = true; rec.continuous = true;
+      rec.onresult = function (ev) {
+        var txt = '';
+        for (var i = 0; i < ev.results.length; i++) txt += ev.results[i][0].transcript;
+        finalText = txt; $('claude-q').value = txt;
+      };
+      rec.onerror = function (ev) { if (ev.error === 'not-allowed') toast('Allow the microphone for this page in Safari'); };
+      rec.onend = function () {
+        btn.classList.remove('on'); btn.querySelector('b').textContent = 'Hold to talk';
+        var q = finalText.trim(); active = false;
+        if (!q) return;
+        if (!msg({ t: 'ask', q: q, voice: true })) send({ cmd: 'ask', q: q, voice: true });
+        $('claude-q').value = ''; toast('Asked Claude on the TV');
+      };
+      try { rec.start(); } catch (er) { active = false; btn.classList.remove('on'); }
+    }
+    function stopTalk(e) { if (e) e.preventDefault(); if (rec) try { rec.stop(); } catch (er) {} }
+    btn.addEventListener('touchstart', startTalk, { passive: false });
+    btn.addEventListener('touchend', stopTalk, { passive: false });
+    btn.addEventListener('touchcancel', stopTalk, { passive: false });
+    btn.addEventListener('mousedown', startTalk);
+    btn.addEventListener('mouseup', stopTalk);
+  })();
+
   // The key is sent only over the direct link: it must never sit on the public relay.
   $('claude-key-save').addEventListener('click', function () {
     var k = $('claude-key').value.trim(), out = $('claude-key-msg');
