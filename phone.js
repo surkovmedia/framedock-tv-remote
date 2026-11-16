@@ -24,7 +24,7 @@
     var el = $('toast'); el.textContent = t; el.classList.add('on');
     clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove('on'); }, 2200);
   }
-  function pdiag(o) { if (!topic) return; o.pdiag = 1; o.at = Date.now(); fetch(NTFY + topic + '-tv', { method: 'POST', body: JSON.stringify(o) }).catch(function () {}); }
+  function pdiag(o) { var on = false; try { on = localStorage.getItem('fd_diag') === '1'; } catch (e) {} if (!topic || !on) return; o.pdiag = 1; o.at = Date.now(); fetch(NTFY + topic + '-tv', { method: 'POST', body: JSON.stringify(o) }).catch(function () {}); }
   function send(body, silent) {
     if (!topic) { if (!silent) toast('Scan the QR code on the TV first'); return Promise.resolve(); }
     var payload = typeof body === 'string' ? body : JSON.stringify(Object.assign({ fd: 1 }, body));
@@ -43,13 +43,16 @@
       if (!st || st.fd !== 1) return;
       if (st.rtc) { onRtc(st); return; }
       if (st.claude === 'answer') { onAnswer(st.s, st.voice); return; }   // Claude's answer when there is no direct link                            // touchpad handshake answer, not the TV state
-      tvState = st; lastStateAt = Date.now();
-      renderNow(); renderHome(); renderLink();
-      if (currentList === 'PL') renderChannels();
+      applyState(st);
     };
   }
+  function applyState(st) {
+    tvState = st; lastStateAt = Date.now();
+    renderNow(); renderHome(); renderLink();
+    if (currentList === 'PL') renderChannels();
+  }
   function renderLink() {
-    var on = Date.now() - lastStateAt < 90000;
+    var on = Date.now() - lastStateAt < 300000 || (rtc && rtc.state === 'open');
     $('link').classList.toggle('on', on);
     $('link-text').textContent = !topic ? 'NOT PAIRED' : on ? 'TV ONLINE' : 'CONNECTING';
   }
@@ -239,6 +242,7 @@
     ch.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (e) { return; }
       if (d.t === 'answer') { onAnswer(d.s, d.voice); return; }
+      if (d.t === 'state' && d.st && d.st.fd === 1) { applyState(d.st); return; }
       if (d.t === 'pong') { rtc.lastPong = Date.now(); touchStatus('Direct link · ' + (Date.now() - d.ts) + ' ms', true); }
     };
     pc.createOffer().then(function (o) { return pc.setLocalDescription(o); })
@@ -524,7 +528,9 @@
   $('pair').hidden = !!topic;
   renderNow(); renderHome(); renderLink();
   listen();
-  send({ cmd: 'sync' }, true);
-  setInterval(function () { if (!document.hidden) send({ cmd: 'sync' }, true); }, 45000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) send({ cmd: 'sync' }, true); });
+  // ntfy.sh has a daily message limit per home address: ask for the state rarely, over the direct link when there is one.
+  function sync() { if (!msg({ t: 'sync' })) send({ cmd: 'sync' }, true); }
+  sync();
+  setInterval(function () { if (!document.hidden) sync(); }, 120000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 })();
