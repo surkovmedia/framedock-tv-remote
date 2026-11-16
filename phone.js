@@ -306,6 +306,28 @@
     $('touch-go').addEventListener('click', go);
   })();
 
+  // ---------------------------------------------------------------- Claude
+  $('claude-ask').addEventListener('click', function () {
+    var q = $('claude-q').value.trim();
+    if (!q) return;
+    if (!msg({ t: 'ask', q: q })) send({ cmd: 'ask', q: q });          // direct link if open, else the relay
+    $('claude-q').value = '';
+    toast('Asked Claude on the TV');
+  });
+  // The key is sent only over the direct link: it must never sit on the public relay.
+  $('claude-key-save').addEventListener('click', function () {
+    var k = $('claude-key').value.trim(), out = $('claude-key-msg');
+    if (!k) { out.textContent = 'Paste the key first.'; return; }
+    if (msg({ t: 'claude-key', k: k })) { $('claude-key').value = ''; out.textContent = 'Saved on the TV.'; return; }
+    out.textContent = 'Connecting to the TV over Wi-Fi…';
+    rtcConnect();
+    var tries = 0, h = setInterval(function () {
+      tries++;
+      if (msg({ t: 'claude-key', k: k })) { clearInterval(h); $('claude-key').value = ''; out.textContent = 'Saved on the TV.'; }
+      else if (tries > 30) { clearInterval(h); out.textContent = 'No direct link to the TV (same Wi-Fi?). The key was not sent.'; }
+    }, 500);
+  });
+
   // ---------------------------------------------------------------- live tv
   var currentList = 'ALL', currentCat = 'All', query = '', shown = 80;
   function channelsOf(list) {

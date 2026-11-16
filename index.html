@@ -72,12 +72,24 @@
     </section>
 
     <section id="tab-send" class="tab" hidden>
+      <div class="eyebrow claude-eyebrow">CLAUDE ON THE TV</div>
+      <h2>Ask Claude</h2>
+      <p class="muted">Type or dictate (the microphone on the iPhone keyboard). Claude answers on the TV and can put on channels, open apps and sites. On the TV: BLUE opens Claude.</p>
+      <textarea id="claude-q" rows="2" placeholder="Turn on BBC News · What's the weather tomorrow?"></textarea>
+      <button class="primary claude-btn" id="claude-ask">Ask Claude</button>
+      <div class="sep"></div>
       <div class="eyebrow">TYPE ON THE PHONE</div>
       <h2>Send to TV</h2>
       <p class="muted">A link opens in FrameDock Browser, a playlist link (.m3u, Xtream) goes to My Playlists, text goes into the field that is open on the TV.</p>
       <textarea id="send-text" rows="3" placeholder="https://… or text"></textarea>
       <button class="primary" id="send-btn">Send</button>
       <div class="muted small" id="send-msg"></div>
+      <div class="sep"></div>
+      <div class="eyebrow">SETTINGS</div>
+      <h3 class="h3">Claude key</h3>
+      <p class="muted small">An Anthropic API key (console.anthropic.com). It goes to the TV only over your home Wi-Fi, never through the internet relay. A key with a spending limit is best.</p>
+      <div class="type-row"><input id="claude-key" type="password" placeholder="sk-ant-…" autocomplete="off" autocapitalize="off"><button id="claude-key-save">Save</button></div>
+      <div class="muted small" id="claude-key-msg"></div>
     </section>
   </main>
 

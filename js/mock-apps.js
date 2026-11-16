@@ -110,6 +110,10 @@ const DEFAULT_CATALOG = [
       c1: "#16040E", c2: "#EC4899", logo: wm("ARCADE<span style=\"color:#EC4899\">.</span>", 54, "#fff"),
       eyebrow: "FRAMEDOCK · GAMES", desc: "Classic games playable with the remote or a Bluetooth controller.", chips: "60 FPS" },
 
+    { id: "framedock.claude", builtin: true, row: "home", name: "Claude", sub: "Ask · Voice · Control the TV", chip: "AI",
+      c1: "#140E0A", c2: "#D97757", logo: wm("ask <span style=\"color:#D97757\">claude</span>", 50, "#E9E4DA"),
+      eyebrow: "FRAMEDOCK · CLAUDE SONNET 5.5", desc: "Ask by voice with the remote or type on the phone. Claude can put on channels, open apps and sites, and search the web. BLUE opens it anywhere.", chips: "BLUE · VOICE · PHONE" },
+
     // ---- Tools
     { id: "framedock.phone", builtin: true, row: "tools", name: "Phone Remote", sub: "Your phone runs the TV", chip: "PHONE",
       c1: "#0B1210", c2: "#9FD17A", logo: wm("phone <span style=\"color:#9FD17A\">remote</span>", 46, "#E9E4DA"),
