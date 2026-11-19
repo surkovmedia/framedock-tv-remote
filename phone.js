@@ -25,11 +25,25 @@
     clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove('on'); }, 2200);
   }
   function pdiag(o) { var on = false; try { on = localStorage.getItem('fd_diag') === '1'; } catch (e) {} if (!topic || !on) return; o.pdiag = 1; o.at = Date.now(); fetch(NTFY + topic + '-tv', { method: 'POST', body: JSON.stringify(o) }).catch(function () {}); }
+  // Everything goes over the direct Wi-Fi link to the TV when it is up. The ntfy.sh relay allows only
+  // 250 messages a day for the whole home address: it carries the link handshake, and the rest only as a fallback.
+  var lastRelaySync = 0;
   function send(body, silent) {
     if (!topic) { if (!silent) toast('Scan the QR code on the TV first'); return Promise.resolve(); }
-    var payload = typeof body === 'string' ? body : JSON.stringify(Object.assign({ fd: 1 }, body));
     if (navigator.vibrate && !silent) navigator.vibrate(10);
-    return fetch(NTFY + topic, { method: 'POST', body: payload }).catch(function () { toast('No connection'); });
+    var offer = typeof body === 'object' && body.cmd === 'rtc-offer';
+    if (!offer) {
+      var direct = typeof body === 'string' ? msg({ t: 'cmd-text', s: body }) : msg({ t: 'cmd', c: Object.assign({ fd: 1 }, body) });
+      if (direct) return Promise.resolve();
+      if (typeof body === 'object' && body.cmd === 'sync') {
+        if (Date.now() - lastRelaySync < 600000) return Promise.resolve();   // state over the relay: at most every 10 min
+        lastRelaySync = Date.now();
+      }
+    }
+    var payload = typeof body === 'string' ? body : JSON.stringify(Object.assign({ fd: 1 }, body));
+    return fetch(NTFY + topic, { method: 'POST', body: payload }).then(function (r) {
+      if (r.status === 429 && !silent) toast('The relay limit is used up for today: connect over Wi-Fi (Touch tab)');
+    }).catch(function () { if (!silent) toast('No connection'); });
   }
 
   // ---------------------------------------------------------------- state from the TV
@@ -226,6 +240,10 @@
     if (!topic) { touchStatus('Scan the QR code on the TV first'); return; }
     if (rtc.state === 'open' || rtc.state === 'connecting') return;
     if (!window.RTCPeerConnection) { touchStatus('This browser cannot connect directly'); return; }
+    // every attempt costs two relay messages: at most 6 an hour
+    var now = Date.now(); rtc.tries = (rtc.tries || []).filter(function (t) { return now - t < 3600000; });
+    if (rtc.tries.length >= 6) { touchStatus('Waiting a little before reconnecting'); return; }
+    rtc.tries.push(now);
     rtcClose();
     rtc.state = 'connecting'; touchStatus('Connecting to the TV…');
     var pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
@@ -237,6 +255,7 @@
       clearInterval(rtc.pinger);
       rtc.pinger = setInterval(function () { msg({ t: 'ping', ts: Date.now() }); }, 3000);
       msg({ t: 'ping', ts: Date.now() });
+      msg({ t: 'sync' });                                               // the TV state now comes over the link
     };
     ch.onclose = function () { if (rtc.pc === pc) { rtcClose(); touchStatus('Disconnected · touch the pad to reconnect'); } };
     ch.onmessage = function (m) {
@@ -261,6 +280,7 @@
   // Sent only over a link the TV is still answering; a silent link (phone was in the background, Wi-Fi switch)
   // is dropped and rebuilt, and the caller falls back to the relay.
   function msg(o) {
+    if (!rtc) return false;
     if (rtc.ch && rtc.ch.readyState === 'open') {
       if (o.t !== 'ping' && Date.now() - rtc.lastPong > 8000) { rtcClose(); touchStatus('Reconnecting…'); rtcConnect(); return false; }
       try { rtc.ch.send(JSON.stringify(o)); return true; } catch (e) { rtcClose(); return false; }
@@ -268,7 +288,9 @@
     return false;
   }
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && rtc.state === 'open' && Date.now() - rtc.lastPong > 8000) { rtcClose(); rtcConnect(); }
+    if (document.hidden) return;
+    if (rtc.state === 'open' && Date.now() - rtc.lastPong > 8000) { rtcClose(); rtcConnect(); }
+    else if (rtc.state === 'idle') rtcConnect();
   });
   (function () {
     var pad = $('pad'), last = null, lastT = 0, startT = 0, moved = 0, fingers = 0;
@@ -529,8 +551,9 @@
   renderNow(); renderHome(); renderLink();
   listen();
   // ntfy.sh has a daily message limit per home address: ask for the state rarely, over the direct link when there is one.
-  function sync() { if (!msg({ t: 'sync' })) send({ cmd: 'sync' }, true); }
+  function sync() { send({ cmd: 'sync' }, true); }
   sync();
+  rtcConnect();                                                         // the direct link from the start, not only on Touch
   setInterval(function () { if (!document.hidden) sync(); }, 120000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 })();
